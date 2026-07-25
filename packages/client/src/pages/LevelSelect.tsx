@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield, Lock, CheckCircle2, Star, Trophy, LogOut, ChevronRight,
-  Zap, Target, TrendingUp, Users,
+  Zap, Target, TrendingUp, RotateCcw, AlertTriangle, X,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -66,6 +66,8 @@ function VulnTag({ category }: { category: string }) {
 export default function LevelSelect() {
   const [levels, setLevels] = useState<LevelWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const navigate = useNavigate();
   const { user, clearAuth } = useAuthStore();
 
@@ -85,6 +87,20 @@ export default function LevelSelect() {
       clearAuth();
       navigate('/');
     });
+  }
+
+  async function handleResetProgress() {
+    setResetting(true);
+    try {
+      await api.post('/levels/reset-progress');
+      const { data } = await api.get('/levels');
+      setLevels(data);
+      setShowResetModal(false);
+    } catch (err) {
+      console.error('Failed to reset lab progress:', err);
+    } finally {
+      setResetting(false);
+    }
   }
 
   if (loading) {
@@ -136,6 +152,16 @@ export default function LevelSelect() {
             >
               <TrendingUp className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Leaderboard</span>
+            </button>
+
+            <button
+              id="btn-reset-progress"
+              onClick={() => setShowResetModal(true)}
+              title="Reset Lab Progress"
+              className="btn-ghost text-sm py-2 px-3 flex items-center gap-1.5 hover:text-cyber-amber hover:border-cyber-amber/30"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-cyber-amber" />
+              <span className="hidden sm:inline">Reset Lab</span>
             </button>
 
             <button
@@ -300,6 +326,51 @@ export default function LevelSelect() {
           ))}
         </div>
       </main>
+
+      {/* Reset confirmation modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/85 backdrop-blur-md animate-fade-in">
+          <div className="glass rounded-2xl p-8 w-full max-w-md mx-4 shadow-glass animate-scale-in">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyber-amber/10 border border-cyber-amber/30 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-cyber-amber" />
+                </div>
+                <div>
+                  <h3 className="font-mono font-bold text-white text-base">Reset All Lab Progress?</h3>
+                  <p className="font-mono text-xs text-white/30">Action cannot be undone</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="btn-icon w-8 h-8"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="font-mono text-sm text-white/60 leading-relaxed mb-6">
+              This will clear all your completed levels, scores, total attempts, and conversation history so you can replay the training range from Level 1.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="btn-ghost flex-1 py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetProgress}
+                disabled={resetting}
+                className="btn-neon-solid flex-1 py-2.5 text-sm bg-cyber-amber text-navy-900 hover:bg-amber-400 border-none disabled:opacity-50"
+              >
+                {resetting ? 'Resetting...' : 'Confirm Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
