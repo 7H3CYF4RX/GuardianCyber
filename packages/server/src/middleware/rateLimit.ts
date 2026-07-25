@@ -4,11 +4,23 @@ import { RedisStore } from 'rate-limit-redis';
 import redis from '../lib/redis';
 
 function makeRedisStore(prefix: string) {
-  return new RedisStore({
-    // @ts-expect-error — sendCommand type mismatch between ioredis and rate-limit-redis
-    sendCommand: (...args: string[]) => redis.call(...args),
-    prefix,
-  });
+  const url = process.env.REDIS_URL;
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // In production without a remote REDIS_URL, fallback to MemoryStore
+  if (!url || (isProd && (url.includes('localhost') || url.includes('127.0.0.1')))) {
+    return undefined;
+  }
+
+  try {
+    return new RedisStore({
+      // @ts-expect-error — sendCommand type mismatch between ioredis and rate-limit-redis
+      sendCommand: (...args: string[]) => redis.call(...args),
+      prefix,
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 // Auth routes: 10 requests per 1 minute per IP
