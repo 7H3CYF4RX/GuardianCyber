@@ -19,18 +19,17 @@ async function initKeyRotation() {
         const { rows } = await pool_1.default.query(`SELECT id, key_encrypted FROM api_keys WHERE provider='nvidia' AND is_active=true ORDER BY priority`);
         for (const row of rows) {
             // score = 0 means available now
-            await redis_1.default.zadd(REDIS_KEY, 'NX', 0, String(row.id));
+            await redis_1.default.zadd(REDIS_KEY, 'NX', 0, String(row.id)).catch(() => { });
         }
-        console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s) in Redis`);
+        console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s)`);
     }
     catch (err) {
-        console.warn(`[KeyRotation] Redis/DB key rotation init warning: ${err.message}`);
+        console.warn(`[KeyRotation] Key rotation init info: ${err.message}`);
     }
 }
 async function getHealthyKeyId() {
     const now = Date.now();
     try {
-        // Score <= now means the key is healthy
         const available = await redis_1.default.zrangebyscore(REDIS_KEY, '-inf', now, 'LIMIT', 0, 1);
         return available[0] || null;
     }
@@ -48,7 +47,7 @@ async function markKeyLimited(keyId, attempt) {
     const backoffMs = Math.min(60000 * Math.pow(2, attempt - 1), 15 * 60000);
     const availableAt = Date.now() + backoffMs;
     try {
-        await redis_1.default.zadd(REDIS_KEY, availableAt, keyId);
+        await redis_1.default.zadd(REDIS_KEY, availableAt, keyId).catch(() => { });
         await pool_1.default.query('UPDATE api_keys SET is_rate_limited=true, rate_limited_until=$1 WHERE id=$2', [new Date(availableAt), keyId]);
     }
     catch { }
@@ -67,7 +66,7 @@ function startKeySweeper() {
             const { rows } = await pool_1.default.query(`SELECT id FROM api_keys WHERE is_rate_limited=true AND rate_limited_until <= NOW() AND is_active=true`);
             for (const row of rows) {
                 await pool_1.default.query('UPDATE api_keys SET is_rate_limited=false WHERE id=$1', [row.id]);
-                await redis_1.default.zadd(REDIS_KEY, 0, String(row.id)); // make immediately available
+                await redis_1.default.zadd(REDIS_KEY, 0, String(row.id)).catch(() => { });
             }
         }
         catch { }

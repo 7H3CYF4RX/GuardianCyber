@@ -8,14 +8,21 @@ import { authLimiter } from '../middleware/rateLimit';
 const router = Router();
 
 const RegisterSchema = z.object({
-  username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_]+$/),
-  password: z.string().min(8).max(128),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters long')
+    .max(50, 'Username cannot exceed 50 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters long')
+    .max(128, 'Password cannot exceed 128 characters'),
   inviteCode: z.string().optional(),
 });
 
 const LoginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cybercrews_jwt_secret_minimum_32_characters_long';
@@ -39,7 +46,8 @@ function generateTokens(userId: string, username: string, isAdmin: boolean) {
 router.post('/register', authLimiter, async (req: Request, res: Response) => {
   const parsed = RegisterSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.flatten() });
+    const message = parsed.error.issues[0]?.message || 'Invalid registration details';
+    return res.status(400).json({ error: message });
   }
 
   const { username, password, inviteCode } = parsed.data;
@@ -62,17 +70,8 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
   );
   const user = rows[0];
 
-  const { accessToken, refreshToken } = generateTokens(user.id, user.username, user.is_admin);
-
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
   res.status(201).json({
-    accessToken,
+    message: 'User registered successfully. Please log in.',
     user: { id: user.id, username: user.username, isAdmin: user.is_admin, createdAt: user.created_at },
   });
 });
@@ -81,7 +80,8 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
 router.post('/login', authLimiter, async (req: Request, res: Response) => {
   const parsed = LoginSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid request' });
+    const message = parsed.error.issues[0]?.message || 'Invalid username or password';
+    return res.status(400).json({ error: message });
   }
 
   const { username, password } = parsed.data;

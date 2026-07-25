@@ -11,13 +11,20 @@ const pool_1 = __importDefault(require("../db/pool"));
 const rateLimit_1 = require("../middleware/rateLimit");
 const router = (0, express_1.Router)();
 const RegisterSchema = zod_1.z.object({
-    username: zod_1.z.string().min(3).max(50).regex(/^[a-zA-Z0-9_]+$/),
-    password: zod_1.z.string().min(8).max(128),
+    username: zod_1.z
+        .string()
+        .min(3, 'Username must be at least 3 characters long')
+        .max(50, 'Username cannot exceed 50 characters')
+        .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+    password: zod_1.z
+        .string()
+        .min(8, 'Password must be at least 8 characters long')
+        .max(128, 'Password cannot exceed 128 characters'),
     inviteCode: zod_1.z.string().optional(),
 });
 const LoginSchema = zod_1.z.object({
-    username: zod_1.z.string().min(1),
-    password: zod_1.z.string().min(1),
+    username: zod_1.z.string().min(1, 'Username is required'),
+    password: zod_1.z.string().min(1, 'Password is required'),
 });
 const JWT_SECRET = process.env.JWT_SECRET || 'cybercrews_jwt_secret_minimum_32_characters_long';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'cybercrews_jwt_refresh_secret_minimum_32_chars';
@@ -30,7 +37,8 @@ function generateTokens(userId, username, isAdmin) {
 router.post('/register', rateLimit_1.authLimiter, async (req, res) => {
     const parsed = RegisterSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        const message = parsed.error.issues[0]?.message || 'Invalid registration details';
+        return res.status(400).json({ error: message });
     }
     const { username, password, inviteCode } = parsed.data;
     if (process.env.INVITE_CODE_REQUIRED === 'true') {
@@ -45,15 +53,8 @@ router.post('/register', rateLimit_1.authLimiter, async (req, res) => {
     const hash = await bcrypt_1.default.hash(password, 12);
     const { rows } = await pool_1.default.query('INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, is_admin, created_at', [username, hash]);
     const user = rows[0];
-    const { accessToken, refreshToken } = generateTokens(user.id, user.username, user.is_admin);
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
     res.status(201).json({
-        accessToken,
+        message: 'User registered successfully. Please log in.',
         user: { id: user.id, username: user.username, isAdmin: user.is_admin, createdAt: user.created_at },
     });
 });
@@ -61,7 +62,8 @@ router.post('/register', rateLimit_1.authLimiter, async (req, res) => {
 router.post('/login', rateLimit_1.authLimiter, async (req, res) => {
     const parsed = LoginSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: 'Invalid request' });
+        const message = parsed.error.issues[0]?.message || 'Invalid username or password';
+        return res.status(400).json({ error: message });
     }
     const { username, password } = parsed.data;
     const { rows } = await pool_1.default.query('SELECT id, username, password_hash, is_admin FROM users WHERE username=$1', [username]);
