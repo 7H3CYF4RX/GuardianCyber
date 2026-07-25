@@ -1,0 +1,28 @@
+{
+  "name": "guardian-cyber",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/client"
+  ],
+  "scripts": {
+    "start": "./start.sh",
+    "render:start": "npm run db:migrate -w packages/server && npm run db:seed -w packages/server && node packages/server/dist/index.js",
+    "dev": "concurrently \"npm run dev -w packages/server\" \"npm run dev -w packages/client\"",
+    "build": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/client",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up --build -d"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "allowScripts": {
+    "bcrypt@5.1.1": true,
+    "esbuild@0.21.5": true,
+    "esbuild@0.28.1": true,
+    "msgpackr-extract@3.0.4": true
+  }
+}

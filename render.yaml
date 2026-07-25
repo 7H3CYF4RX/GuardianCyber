@@ -1,0 +1,50 @@
+# ==============================================================================
+# Render Blueprint (render.yaml) for CyberCrews AI Security Lab
+# ==============================================================================
+
+services:
+  # Express Backend API + Integrated React SPA Frontend
+  - type: web
+    name: guardian-cyber
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run render:start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: guardiancyber-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: guardiancyber-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: AES_KEY
+        generateValue: true
+      - key: NVIDIA_MODEL
+        value: meta/llama-3.1-8b-instruct
+      - key: NVIDIA_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: HINT_PASSWORD
+        value: CyberCrews
+
+  # Managed Redis Instance
+  - type: redis
+    name: guardiancyber-redis
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+# Managed PostgreSQL Database Instance
+databases:
+  - name: guardiancyber-db
+    databaseName: guardiancyber
+    user: cybercrew
