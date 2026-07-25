@@ -498,7 +498,7 @@ export default function GamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 flex flex-col">
+    <div className="h-screen max-h-screen w-full overflow-hidden bg-navy-900 flex flex-col">
       {showBurst && <SuccessBurst />}
 
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
@@ -557,10 +557,10 @@ export default function GamePage() {
       </header>
 
       {/* ── Main layout ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex overflow-hidden min-h-0 min-w-0 h-full">
 
         {/* ── Chat panel ──────────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 h-full overflow-hidden">
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
@@ -787,7 +787,7 @@ export default function GamePage() {
         </div>
 
         {/* ── Sidebar ────────────────────────────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-72 xl:w-80 glass border-l border-white/5 overflow-y-auto flex-shrink-0">
+        <aside className="hidden lg:flex flex-col w-72 xl:w-80 glass border-l border-white/5 overflow-y-auto flex-shrink-0 h-full">
           {/* Objective */}
           <div className="p-6 border-b border-white/5">
             <div className="flex items-center gap-2 mb-3">
