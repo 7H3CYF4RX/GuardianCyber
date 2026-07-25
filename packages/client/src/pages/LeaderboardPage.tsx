@@ -106,10 +106,10 @@ export default function LeaderboardPage() {
                 <div className="font-mono font-bold text-white">{user.username}</div>
                 <div className="flex items-center gap-4 mt-1">
                   <span className="text-xs font-mono text-white/40 flex items-center gap-1">
-                    <Zap className="w-3 h-3" />{myRank.levels_completed} levels
+                    <Zap className="w-3 h-3" />{Number(myRank.levels_completed ?? (myRank as any).levelsCompleted ?? 0)} levels
                   </span>
                   <span className="text-xs font-mono text-cyber-amber flex items-center gap-1">
-                    <Trophy className="w-3 h-3" />{myRank.total_score.toLocaleString()} pts
+                    <Trophy className="w-3 h-3" />{Number(myRank.total_score ?? (myRank as any).totalScore ?? 0).toLocaleString()} pts
                   </span>
                 </div>
               </div>
@@ -135,45 +135,52 @@ export default function LeaderboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-white/5">
-              {entries.map((entry) => (
-                <div
-                  key={entry.userId}
-                  className={`flex items-center gap-4 px-6 py-4 border-l-2 transition-all duration-200 ${
-                    entry.username === user?.username
-                      ? 'border-l-neon-green bg-neon-green/5'
-                      : `border-l-transparent ${getRankBg(Number(entry.rank))}`
-                  }`}
-                >
-                  <div className={`w-8 text-center font-mono font-bold text-sm ${getRankStyle(Number(entry.rank))}`}>
-                    {Number(entry.rank) <= 3 ? ['🥇', '🥈', '🥉'][Number(entry.rank) - 1] : `#${entry.rank}`}
-                  </div>
+              {entries.map((entry) => {
+                const totalScore = Number(entry.totalScore ?? (entry as any).total_score ?? 0);
+                const levelsCompleted = Number(entry.levelsCompleted ?? (entry as any).levels_completed ?? 0);
+                const avgTimeSeconds = entry.avgTimeSeconds ?? (entry as any).avg_time_seconds;
+                const userId = entry.userId ?? (entry as any).user_id;
 
-                  <div className="flex-1 min-w-0">
-                    <div className={`font-mono font-semibold text-sm ${entry.username === user?.username ? 'text-neon-green' : 'text-white'}`}>
-                      {entry.username}
-                      {entry.username === user?.username && <span className="text-white/30 ml-2 text-xs">(you)</span>}
+                return (
+                  <div
+                    key={userId}
+                    className={`flex items-center gap-4 px-6 py-4 border-l-2 transition-all duration-200 ${
+                      entry.username === user?.username
+                        ? 'border-l-neon-green bg-neon-green/5'
+                        : `border-l-transparent ${getRankBg(Number(entry.rank))}`
+                    }`}
+                  >
+                    <div className={`w-8 text-center font-mono font-bold text-sm ${getRankStyle(Number(entry.rank))}`}>
+                      {Number(entry.rank) <= 3 ? ['🥇', '🥈', '🥉'][Number(entry.rank) - 1] : `#${entry.rank}`}
                     </div>
-                    <div className="flex items-center gap-4 mt-0.5">
-                      <span className="text-xs font-mono text-white/30 flex items-center gap-1">
-                        <Shield className="w-3 h-3" />{entry.levelsCompleted}/14
-                      </span>
-                      {entry.avgTimeSeconds && (
+
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-mono font-semibold text-sm ${entry.username === user?.username ? 'text-neon-green' : 'text-white'}`}>
+                        {entry.username}
+                        {entry.username === user?.username && <span className="text-white/30 ml-2 text-xs">(you)</span>}
+                      </div>
+                      <div className="flex items-center gap-4 mt-0.5">
                         <span className="text-xs font-mono text-white/30 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {Math.floor(Number(entry.avgTimeSeconds) / 60)}m avg
+                          <Shield className="w-3 h-3" />{levelsCompleted}/14
                         </span>
-                      )}
+                        {avgTimeSeconds != null && !isNaN(Number(avgTimeSeconds)) && (
+                          <span className="text-xs font-mono text-white/30 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {Math.floor(Number(avgTimeSeconds) / 60)}m avg
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="text-right">
-                    <div className="font-mono font-bold text-white">
-                      {Number(entry.totalScore).toLocaleString()}
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-white">
+                        {isNaN(totalScore) ? '0' : totalScore.toLocaleString()}
+                      </div>
+                      <div className="text-xs font-mono text-white/30">pts</div>
                     </div>
-                    <div className="text-xs font-mono text-white/30">pts</div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
