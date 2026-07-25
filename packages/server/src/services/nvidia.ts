@@ -15,18 +15,17 @@ export async function initKeyRotation(): Promise<void> {
     );
     for (const row of rows) {
       // score = 0 means available now
-      await redis.zadd(REDIS_KEY, 'NX', 0, String(row.id));
+      await redis.zadd(REDIS_KEY, 'NX', 0, String(row.id)).catch(() => {});
     }
-    console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s) in Redis`);
+    console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s)`);
   } catch (err: any) {
-    console.warn(`[KeyRotation] Redis/DB key rotation init warning: ${err.message}`);
+    console.warn(`[KeyRotation] Key rotation init info: ${err.message}`);
   }
 }
 
 async function getHealthyKeyId(): Promise<string | null> {
   const now = Date.now();
   try {
-    // Score <= now means the key is healthy
     const available = await redis.zrangebyscore(REDIS_KEY, '-inf', now, 'LIMIT', 0, 1);
     return available[0] || null;
   } catch {
@@ -44,7 +43,7 @@ async function markKeyLimited(keyId: string, attempt: number): Promise<void> {
   const backoffMs = Math.min(60_000 * Math.pow(2, attempt - 1), 15 * 60_000);
   const availableAt = Date.now() + backoffMs;
   try {
-    await redis.zadd(REDIS_KEY, availableAt, keyId);
+    await redis.zadd(REDIS_KEY, availableAt, keyId).catch(() => {});
     await pool.query(
       'UPDATE api_keys SET is_rate_limited=true, rate_limited_until=$1 WHERE id=$2',
       [new Date(availableAt), keyId]
@@ -69,7 +68,7 @@ export function startKeySweeper(): void {
       );
       for (const row of rows) {
         await pool.query('UPDATE api_keys SET is_rate_limited=false WHERE id=$1', [row.id]);
-        await redis.zadd(REDIS_KEY, 0, String(row.id)); // make immediately available
+        await redis.zadd(REDIS_KEY, 0, String(row.id)).catch(() => {});
       }
     } catch {}
   }, 10_000);
