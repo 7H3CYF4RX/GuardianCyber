@@ -1,6 +1,12 @@
 import { Pool } from 'pg';
 
 const isProd = process.env.NODE_ENV === 'production';
+
+if (!process.env.DATABASE_URL && isProd) {
+  console.error('❌ ERROR: DATABASE_URL environment variable is missing on Render!');
+  console.error('👉 Please add DATABASE_URL (Internal Connection String from your Render PostgreSQL database) to your Web Service Environment variables.');
+}
+
 const connectionString = process.env.DATABASE_URL || 'postgresql://cybercrew:change_me_strong_password@localhost:5432/guardiancyber';
 
 const pool = new Pool({
