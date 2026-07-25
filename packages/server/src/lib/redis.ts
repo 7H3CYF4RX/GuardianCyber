@@ -2,9 +2,13 @@ import Redis from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const redisOptions: any = {
-  maxRetriesPerRequest: 3,
-  enableReadyCheck: true,
+  maxRetriesPerRequest: null,
+  enableOfflineQueue: false,
+  enableReadyCheck: false,
   lazyConnect: true,
+  retryStrategy(times: number) {
+    return Math.min(times * 1000, 10000);
+  },
 };
 
 if (process.env.REDIS_PASSWORD) {
@@ -14,7 +18,7 @@ if (process.env.REDIS_PASSWORD) {
 const redis = new Redis(redisUrl, redisOptions);
 
 redis.on('error', (err) => {
-  console.error('[Redis] Connection error:', err.message);
+  console.warn('[Redis] Warning:', err.message);
 });
 
 redis.on('connect', () => {
