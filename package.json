@@ -8,8 +8,9 @@
     "packages/client"
   ],
   "scripts": {
-    "start": "./start.sh",
+    "start": "npm run render:start",
     "render:start": "npm run db:migrate -w packages/server && npm run db:seed -w packages/server && node packages/server/dist/index.js",
+    "dev:local": "./start.sh",
     "dev": "concurrently \"npm run dev -w packages/server\" \"npm run dev -w packages/client\"",
     "build": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/client",
     "docker:up": "docker compose up --build",
