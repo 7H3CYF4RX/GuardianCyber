@@ -106,7 +106,13 @@ if ! command -v npm >/dev/null 2>&1; then
 fi
 success "npm $(npm -v) detected"
 
-# Detect Docker Compose command
+# Detect Cloud / Render / Production environment without Docker
+if [ "$RENDER" = "true" ] || [ "$NODE_ENV" = "production" ] || ! command -v docker >/dev/null 2>&1; then
+    info "Cloud host / standalone Node environment detected (no Docker daemon)."
+    info "Starting production server directly via 'npm run render:start'..."
+    exec npm run render:start
+fi
+
 if command -v docker >/dev/null 2>&1; then
     if docker compose version >/dev/null 2>&1; then
         DOCKER_COMPOSE="docker compose"
@@ -118,9 +124,6 @@ if command -v docker >/dev/null 2>&1; then
         error "Docker Compose is required but neither 'docker compose' nor 'docker-compose' was found."
         exit 1
     fi
-else
-    error "Docker is not running or not installed. Please start Docker and retry."
-    exit 1
 fi
 
 # 2. Environment Setup
