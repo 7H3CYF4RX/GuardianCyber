@@ -1,0 +1,180 @@
+/* ─── Google Fonts ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ──────────────────────────────────────────────────── */
+:root {
+  --neon: #00ff88;
+  --neon-dim: #00cc6a;
+  --navy-900: #060a14;
+  --navy-800: #0a0e1a;
+  --navy-700: #0e1422;
+  --navy-600: #141c2e;
+  --glass-bg: rgba(14, 20, 34, 0.7);
+  --glass-border: rgba(0, 255, 136, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background-color: var(--navy-900);
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--navy-800); }
+::-webkit-scrollbar-thumb { background: rgba(0,255,136,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,255,136,0.6); }
+
+/* ─── Glass card ────────────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+/* ─── Neon text ─────────────────────────────────────────────── */
+.neon-text {
+  color: var(--neon);
+  text-shadow: 0 0 20px rgba(0,255,136,0.5);
+}
+
+/* ─── Scanline overlay ──────────────────────────────────────── */
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Terminal cursor ───────────────────────────────────────── */
+.cursor::after {
+  content: '█';
+  color: var(--neon);
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ─── Neon button ───────────────────────────────────────────── */
+.btn-neon {
+  @apply bg-transparent border border-neon-green text-neon-green font-mono font-semibold;
+  @apply px-6 py-3 rounded-lg transition-all duration-200;
+  @apply hover:bg-neon-green hover:text-navy-900 hover:shadow-neon;
+  @apply active:scale-95 focus:outline-none focus:ring-2 focus:ring-neon-green focus:ring-offset-2 focus:ring-offset-navy-900;
+}
+
+.btn-neon-solid {
+  @apply bg-neon-green text-navy-900 font-mono font-bold;
+  @apply px-6 py-3 rounded-lg transition-all duration-200;
+  @apply hover:bg-neon-green-dim hover:shadow-neon;
+  @apply active:scale-95 focus:outline-none focus:ring-2 focus:ring-neon-green focus:ring-offset-2 focus:ring-offset-navy-900;
+}
+
+.btn-ghost {
+  @apply bg-transparent border border-white/10 text-white/60 font-mono;
+  @apply px-6 py-3 rounded-lg transition-all duration-200;
+  @apply hover:border-white/30 hover:text-white/90;
+  @apply active:scale-95 focus:outline-none;
+}
+
+/* ─── Input ─────────────────────────────────────────────────── */
+.input-cyber {
+  @apply bg-navy-700 border border-white/10 text-white font-mono;
+  @apply px-4 py-3 rounded-lg w-full transition-all duration-200;
+  @apply placeholder:text-white/30;
+  @apply focus:outline-none focus:border-neon-green focus:shadow-neon-sm;
+}
+
+/* ─── Chat bubbles ──────────────────────────────────────────── */
+.bubble-user {
+  @apply bg-neon-green/10 border border-neon-green/20 text-white;
+  @apply rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] font-mono text-sm;
+}
+
+.bubble-ai {
+  @apply bg-navy-600 border border-white/10 text-white/90;
+  @apply rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] font-mono text-sm;
+}
+
+/* ─── Level pill ────────────────────────────────────────────── */
+.level-pill {
+  @apply flex flex-col items-center gap-1 cursor-pointer transition-all duration-200;
+}
+
+.level-pill-circle {
+  @apply w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-sm font-bold;
+  @apply transition-all duration-200;
+}
+
+.level-pill-circle.unlocked { @apply border-neon-green text-neon-green hover:bg-neon-green hover:text-navy-900 hover:shadow-neon-sm; }
+.level-pill-circle.completed { @apply border-neon-green bg-neon-green text-navy-900; }
+.level-pill-circle.locked { @apply border-white/20 text-white/20 cursor-not-allowed; }
+.level-pill-circle.active { @apply border-neon-green bg-neon-green/20 text-neon-green shadow-neon-sm animate-pulse-neon; }
+
+/* ─── Difficulty stars ──────────────────────────────────────── */
+.star-filled { color: #ffb347; }
+.star-empty { color: rgba(255,255,255,0.15); }
+
+/* ─── Typing indicator ──────────────────────────────────────── */
+.typing-dot {
+  @apply w-2 h-2 rounded-full bg-neon-green;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+
+/* ─── Grid background ───────────────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ─── Passed flash ──────────────────────────────────────────── */
+@keyframes passedFlash {
+  0% { box-shadow: 0 0 0 0 rgba(0,255,136,0.6); }
+  50% { box-shadow: 0 0 40px 20px rgba(0,255,136,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+}
+.passed-flash { animation: passedFlash 1s ease-out; }
+
+/* ─── Debrief panel ─────────────────────────────────────────── */
+.debrief-panel {
+  @apply glass rounded-xl p-6 border-neon-green/30 animate-slide-up;
+  border-color: rgba(0,255,136,0.3);
+}
+
+/* ─── Leaderboard rank badge ────────────────────────────────── */
+.rank-1 { @apply text-yellow-400 font-bold; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
+.rank-2 { @apply text-gray-300 font-bold; }
+.rank-3 { @apply text-amber-600 font-bold; }
