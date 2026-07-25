@@ -1,6 +1,6 @@
 import pool from '../db/pool';
 import redis from '../lib/redis';
-import { decrypt } from '../lib/crypto';
+import { decrypt, encrypt } from '../lib/crypto';
 
 const NVIDIA_BASE_URL = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1';
 const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'google/gemma-4-31b-it';
@@ -10,14 +10,39 @@ const REDIS_KEY = 'nvidia:keys:sorted';
 
 export async function initKeyRotation(): Promise<void> {
   try {
+    const rawKeysString = process.env.NVIDIA_API_KEYS || process.env.NVIDIA_API_KEY || '';
+    const rawKeys = rawKeysString.split(',').map((k) => k.trim()).filter((k) => k.length > 5);
+
+    if (rawKeys.length > 0) {
+      const { rows: existingRows } = await pool.query(
+        `SELECT id, key_encrypted FROM api_keys WHERE provider='nvidia'`
+      );
+      const existingKeys = new Set<string>();
+      for (const r of existingRows) {
+        try {
+          existingKeys.add(decrypt(r.key_encrypted));
+        } catch {}
+      }
+
+      for (let i = 0; i < rawKeys.length; i++) {
+        const key = rawKeys[i];
+        if (!existingKeys.has(key)) {
+          const encrypted = encrypt(key);
+          await pool.query(
+            `INSERT INTO api_keys (provider, key_encrypted, priority, is_active) VALUES ('nvidia', $1, $2, true)`,
+            [encrypted, i]
+          );
+        }
+      }
+    }
+
     const { rows } = await pool.query(
-      `SELECT id, key_encrypted FROM api_keys WHERE provider='nvidia' AND is_active=true ORDER BY priority`
+      `SELECT id FROM api_keys WHERE provider='nvidia' AND is_active=true ORDER BY priority`
     );
     for (const row of rows) {
-      // score = 0 means available now
       await redis.zadd(REDIS_KEY, 'NX', 0, String(row.id)).catch(() => {});
     }
-    console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s)`);
+    console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s) in rotation pool`);
   } catch (err: any) {
     console.warn(`[KeyRotation] Key rotation init info: ${err.message}`);
   }
@@ -74,6 +99,13 @@ export function startKeySweeper(): void {
   }, 10_000);
 }
 
+function getFallbackKey(attempt: number): string | null {
+  const raw = process.env.NVIDIA_API_KEYS || process.env.NVIDIA_API_KEY || '';
+  const keys = raw.split(',').map((k) => k.trim()).filter((k) => k.length > 5);
+  if (!keys.length) return null;
+  return keys[attempt % keys.length];
+}
+
 // ─── Main NVIDIA call with failover ─────────────────────────────────────────
 
 export interface NvidiaMessage {
@@ -112,9 +144,9 @@ export async function callNvidia(
     }
   }
 
-  // Fallback to process.env.NVIDIA_API_KEY if no key from pool
+  // Fallback to single key extracted from process.env if pool key not found
   if (!apiKey) {
-    apiKey = process.env.NVIDIA_API_KEY || null;
+    apiKey = getFallbackKey(attempt);
   }
 
   if (!apiKey) {
@@ -187,7 +219,7 @@ export async function callNvidiaStream(
   }
 
   if (!apiKey) {
-    apiKey = process.env.NVIDIA_API_KEY || null;
+    apiKey = getFallbackKey(attempt);
   }
 
   if (!apiKey) {
