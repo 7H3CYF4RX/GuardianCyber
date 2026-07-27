@@ -302,6 +302,47 @@ export default function GamePage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typing]);
 
+  // Real DOM XSS Execution Listener for Level 9 (Insecure Output)
+  useEffect(() => {
+    if ((levelId === 9 || level?.vulnCategory === 'insecure_output') && !passed) {
+      let triggered = false;
+      const confirmXSSExecution = async () => {
+        if (triggered) return;
+        triggered = true;
+        try {
+          const { data } = await api.post(`/levels/${levelId}/confirm-xss`);
+          if (data.passed) {
+            setPassed(true);
+            setFinalScore(data.score || 0);
+            if (data.debrief) setDebrief(data.debrief);
+            clearInterval(timerRef.current);
+            setShowBurst(true);
+            setTimeout(() => setShowBurst(false), 1500);
+          }
+        } catch (err) {
+          console.error('[XSS Confirm Error]:', err);
+          triggered = false;
+        }
+      };
+
+      const origAlert = window.alert;
+      window.alert = (...args) => {
+        try { origAlert(...args); } catch {}
+        confirmXSSExecution();
+      };
+
+      const errorListener = () => {
+        confirmXSSExecution();
+      };
+      window.addEventListener('error', errorListener, true);
+
+      return () => {
+        window.alert = origAlert;
+        window.removeEventListener('error', errorListener, true);
+      };
+    }
+  }, [levelId, level, passed]);
+
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
