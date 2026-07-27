@@ -1,10 +1,16 @@
-# CyberCrews AI Security Lab
+# Guardian Cyber (CyberCrews AI Security Lab)
 
 > A Gandalf-style LLM vulnerability training range — 14 escalating challenges covering the OWASP LLM Top 10.
 
-![CyberCrews Banner](https://img.shields.io/badge/CyberCrews-AI%20Security%20Lab-00ff88?style=flat-square&logo=shield)
+![Guardian Cyber Banner](https://img.shields.io/badge/GuardianCyber-AI%20Security%20Lab-00ff88?style=flat-square&logo=shield)
 ![Levels](https://img.shields.io/badge/Levels-14-blue?style=flat-square)
 ![Stack](https://img.shields.io/badge/Stack-React%20%2B%20Node.js%20%2B%20NVIDIA%20NIM-purple?style=flat-square)
+
+---
+
+## 📖 Solution Guide & Walkthrough
+
+Full OWASP vulnerability writeups, technical debriefs, and verified attack payloads for all 14 training labs are documented in [Solution.md](./Solution.md).
 
 ---
 
@@ -125,11 +131,12 @@ time_bonus  = max(0, 300 - floor(elapsed_seconds / 10))
 
 ---
 
-## Security Notes
+## Security & Execution Architecture
 
 - `system_prompt` and `secret_answer` are **never** sent to the frontend — validated server-side only
-- Level 8 tool calls are **fully mocked** — no real email/DB/network access
-- Level 9 XSS panel runs in a **sandboxed iframe** — no real DOM access
+- **Level 8 (Excessive Agency)**: Tool calls are executed in a **real sandboxed environment** (isolated in-memory SQLite & isolated filesystem in `/tmp/cybercrews_sandbox`) — solved only when real sandboxed execution succeeds
+- **Level 9 (Insecure Output / XSS)**: Evaluates **real client-side DOM JavaScript execution** via event listeners & alert interception calling the `/confirm-xss` endpoint
+- **Level 13 (Multi-Agent Trust)**: Implements a real two-stage pipeline (`Agent A` → `Agent B`) testing multi-agent trust boundary exploitation
 - All NVIDIA API keys are encrypted at rest with AES-256-GCM
 - Rate limits: auth (10/min), chat (30/min), hints (5/10min), global (200/min) — all Redis-backed
 
