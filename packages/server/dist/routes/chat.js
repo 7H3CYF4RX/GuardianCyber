@@ -269,5 +269,22 @@ function createChatRouter(io) {
         await pool_1.default.query('DELETE FROM conversation_history WHERE user_id=$1 AND level_id=$2', [userId, levelId]);
         res.json({ status: 'cleared' });
     });
+    router.post('/reset-progress', auth_1.authMiddleware, async (req, res) => {
+        const userId = req.user.id;
+        await pool_1.default.query('DELETE FROM user_level_progress WHERE user_id=$1', [userId]);
+        await pool_1.default.query('DELETE FROM conversation_history WHERE user_id=$1', [userId]);
+        await pool_1.default.query('DELETE FROM attempts WHERE user_id=$1', [userId]);
+        try {
+            await pool_1.default.query('REFRESH MATERIALIZED VIEW CONCURRENTLY leaderboard');
+        }
+        catch {
+            try {
+                await pool_1.default.query('REFRESH MATERIALIZED VIEW leaderboard');
+            }
+            catch { }
+        }
+        await (0, leaderboardBroadcast_1.broadcastLeaderboard)(io);
+        res.json({ status: 'reset', message: 'All lab progress reset successfully' });
+    });
     return router;
 }

@@ -16,12 +16,30 @@ const REDIS_KEY = 'nvidia:keys:sorted';
 // ─── Key Health ───────────────────────────────────────────────────────────────
 async function initKeyRotation() {
     try {
-        const { rows } = await pool_1.default.query(`SELECT id, key_encrypted FROM api_keys WHERE provider='nvidia' AND is_active=true ORDER BY priority`);
+        const rawKeysString = process.env.NVIDIA_API_KEYS || process.env.NVIDIA_API_KEY || '';
+        const rawKeys = rawKeysString.split(',').map((k) => k.trim()).filter((k) => k.length > 5);
+        if (rawKeys.length > 0) {
+            const { rows: existingRows } = await pool_1.default.query(`SELECT id, key_encrypted FROM api_keys WHERE provider='nvidia'`);
+            const existingKeys = new Set();
+            for (const r of existingRows) {
+                try {
+                    existingKeys.add((0, crypto_1.decrypt)(r.key_encrypted));
+                }
+                catch { }
+            }
+            for (let i = 0; i < rawKeys.length; i++) {
+                const key = rawKeys[i];
+                if (!existingKeys.has(key)) {
+                    const encrypted = (0, crypto_1.encrypt)(key);
+                    await pool_1.default.query(`INSERT INTO api_keys (provider, key_encrypted, priority, is_active) VALUES ('nvidia', $1, $2, true)`, [encrypted, i]);
+                }
+            }
+        }
+        const { rows } = await pool_1.default.query(`SELECT id FROM api_keys WHERE provider='nvidia' AND is_active=true ORDER BY priority`);
         for (const row of rows) {
-            // score = 0 means available now
             await redis_1.default.zadd(REDIS_KEY, 'NX', 0, String(row.id)).catch(() => { });
         }
-        console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s)`);
+        console.log(`[KeyRotation] Initialized ${rows.length} NVIDIA key(s) in rotation pool`);
     }
     catch (err) {
         console.warn(`[KeyRotation] Key rotation init info: ${err.message}`);
@@ -72,6 +90,13 @@ function startKeySweeper() {
         catch { }
     }, 10000);
 }
+function getFallbackKey(attempt) {
+    const raw = process.env.NVIDIA_API_KEYS || process.env.NVIDIA_API_KEY || '';
+    const keys = raw.split(',').map((k) => k.trim()).filter((k) => k.length > 5);
+    if (!keys.length)
+        return null;
+    return keys[attempt % keys.length];
+}
 const MAX_TOKENS_CAP = 16384; // Hard cap to prevent runaway token usage
 async function callNvidia(messages, options = {}, attempt = 0, triedKeys = new Set()) {
     if (attempt > 5) {
@@ -88,9 +113,9 @@ async function callNvidia(messages, options = {}, attempt = 0, triedKeys = new S
             apiKey = null;
         }
     }
-    // Fallback to process.env.NVIDIA_API_KEY if no key from pool
+    // Fallback to single key extracted from process.env if pool key not found
     if (!apiKey) {
-        apiKey = process.env.NVIDIA_API_KEY || null;
+        apiKey = getFallbackKey(attempt);
     }
     if (!apiKey) {
         throw new Error('ALL_KEYS_RATE_LIMITED');
@@ -148,7 +173,7 @@ async function callNvidiaStream(messages, onChunk, options = {}, attempt = 0, tr
         }
     }
     if (!apiKey) {
-        apiKey = process.env.NVIDIA_API_KEY || null;
+        apiKey = getFallbackKey(attempt);
     }
     if (!apiKey) {
         throw new Error('ALL_KEYS_RATE_LIMITED');
