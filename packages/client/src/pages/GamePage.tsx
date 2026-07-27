@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Shield, Send, Lightbulb, ChevronLeft, CheckCircle2,
   AlertTriangle, Star, Clock, Zap, X, Eye, EyeOff, Cpu,
-  Paperclip, FileText, Scan, Trash2, Target, Lock,
+  Paperclip, FileText, Scan, Trash2, Target, Lock, ChevronDown,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -274,6 +274,7 @@ export default function GamePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [passed, setPassed] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
+  const [showMobileObjective, setShowMobileObjective] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -534,7 +535,17 @@ export default function GamePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-mono text-white/40 flex-shrink-0">
+        <div className="flex items-center gap-2 text-xs font-mono text-white/40 flex-shrink-0">
+          <button
+            onClick={() => setShowMobileObjective((prev) => !prev)}
+            className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neon-green/10 hover:bg-neon-green/20 border border-neon-green/25 text-neon-green text-xs font-mono transition-all"
+            title="Toggle Objective"
+          >
+            <Target className="w-3.5 h-3.5 text-neon-green" />
+            <span className="hidden xs:inline sm:inline">Objective</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMobileObjective ? 'rotate-180' : ''}`} />
+          </button>
+
           <button
             onClick={clearChatHistory}
             title="Clear chat history"
@@ -555,6 +566,44 @@ export default function GamePage() {
           </div>
         </div>
       </header>
+
+      {/* ── Mobile Collapsible Objective Banner ─────────────────────────────────── */}
+      {showMobileObjective && (
+        <div className="lg:hidden glass border-b border-neon-green/20 p-4 bg-navy-900/95 animate-fade-in flex-shrink-0 z-10 shadow-lg">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-neon-green" />
+              <span className="font-mono text-xs font-semibold text-neon-green uppercase tracking-widest">
+                Level Objective
+              </span>
+            </div>
+            <button
+              onClick={() => setShowMobileObjective(false)}
+              className="text-white/40 hover:text-white transition-colors p-1"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="font-mono text-sm text-white/80 leading-relaxed">
+            {level.objective}
+          </p>
+          {!passed && (
+            <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setShowMobileObjective(false);
+                  setShowHint(true);
+                }}
+                className="flex items-center gap-1.5 text-xs font-mono text-cyber-amber hover:underline"
+              >
+                <Lightbulb className="w-3.5 h-3.5" />
+                <span>Unlock Hint (-150 pts)</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Main layout ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden min-h-0 min-w-0 h-full">
